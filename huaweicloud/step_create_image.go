@@ -92,6 +92,8 @@ func (s *stepCreateImage) Run(ctx context.Context, state multistep.StateBag) mul
 		return multistep.ActionHalt
 	}
 
+	/* it is not supported for this action
+
 	if s.UseBlockStorageVolume {
 		volume := state.Get("volume_id").(string)
 		if len(config.ImageMetadata) > 0 {
@@ -106,6 +108,7 @@ func (s *stepCreateImage) Run(ctx context.Context, state multistep.StateBag) mul
 			}
 		}
 	}
+	*/
 
 	return multistep.ActionContinue
 }
