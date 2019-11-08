@@ -1,6 +1,3 @@
-// The openstack package contains a packer.Builder implementation that
-// builds Images for openstack.
-
 package huaweicloud
 
 import (
