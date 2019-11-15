@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 
+	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
@@ -61,8 +62,6 @@ func (s *StepRunSourceServer) Run(ctx context.Context, state multistep.StateBag)
 		}
 	}
 
-	ui.Say("Launching server...")
-
 	serverOpts := servers.CreateOpts{
 		Name:             s.Name,
 		ImageRef:         sourceImage,
@@ -93,11 +92,11 @@ func (s *StepRunSourceServer) Run(ctx context.Context, state multistep.StateBag)
 		// ImageRef and block device mapping is an invalid options combination.
 		serverOpts.ImageRef = ""
 		serverOptsExt = bootfromvolume.CreateOptsExt{
-			CreateOptsBuilder: serverOpts,
+			CreateOptsBuilder: &serverOpts, // must pass pointer, because it will be changed later
 			BlockDevice:       blockDeviceMappingV2,
 		}
 	} else {
-		serverOptsExt = serverOpts
+		serverOptsExt = &serverOpts // must pass pointer
 	}
 
 	// Add keypair to the server create options.
@@ -109,35 +108,32 @@ func (s *StepRunSourceServer) Run(ctx context.Context, state multistep.StateBag)
 		}
 	}
 
-	ui.Say("Launching server...")
-	s.server, err = servers.Create(computeClient, serverOptsExt).Extract()
+	azs := state.Get("azs").([]string)
+	if s.AvailabilityZone != "" {
+		for i, az := range azs {
+			if az == s.AvailabilityZone {
+				az = azs[0]
+				azs[0] = s.AvailabilityZone
+				azs[i] = az
+			}
+		}
+	}
+	var server *servers.Server
+	for _, az := range azs {
+		ui.Say(fmt.Sprintf("Launching server in az:%s ...", az))
+		serverOpts.AvailabilityZone = az
+		server, err = createServer(ui, state, computeClient, serverOptsExt)
+		if err == nil {
+			break
+		}
+	}
 	if err != nil {
-		err := fmt.Errorf("Error launching source server: %s", err)
 		state.Put("error", err)
-		ui.Error(err.Error())
 		return multistep.ActionHalt
 	}
 
-	ui.Message(fmt.Sprintf("Server ID: %s", s.server.ID))
-	log.Printf("server id: %s", s.server.ID)
-
-	ui.Say("Waiting for server to become ready...")
-	stateChange := StateChangeConf{
-		Pending:   []string{"BUILD"},
-		Target:    []string{"ACTIVE"},
-		Refresh:   ServerStateRefreshFunc(computeClient, s.server),
-		StepState: state,
-	}
-	latestServer, err := WaitForState(&stateChange)
-	if err != nil {
-		err := fmt.Errorf("Error waiting for server (%s) to become ready: %s", s.server.ID, err)
-		state.Put("error", err)
-		ui.Error(err.Error())
-		return multistep.ActionHalt
-	}
-
-	s.server = latestServer.(*servers.Server)
-	state.Put("server", s.server)
+	s.server = server
+	state.Put("server", server)
 
 	return multistep.ActionContinue
 }
@@ -177,4 +173,32 @@ func (s *StepRunSourceServer) Cleanup(state multistep.StateBag) {
 	}
 
 	WaitForState(&stateChange)
+}
+
+func createServer(ui packer.Ui, state multistep.StateBag, client *gophercloud.ServiceClient, opts servers.CreateOptsBuilder) (*servers.Server, error) {
+	server, err := servers.Create(client, opts).Extract()
+	if err != nil {
+		err = fmt.Errorf("Error launching source server: %s", err)
+		ui.Error(err.Error())
+		return nil, err
+	}
+
+	ui.Message(fmt.Sprintf("Server ID: %s", server.ID))
+	log.Printf("server id: %s", server.ID)
+
+	ui.Say("Waiting for server to become ready...")
+	stateChange := StateChangeConf{
+		Pending:   []string{"BUILD"},
+		Target:    []string{"ACTIVE"},
+		Refresh:   ServerStateRefreshFunc(client, server),
+		StepState: state,
+	}
+	latestServer, err := WaitForState(&stateChange)
+	if err != nil {
+		err = fmt.Errorf("Error waiting for server (%s) to become ready: %s", server.ID, err)
+		ui.Error(err.Error())
+		return nil, err
+	}
+
+	return latestServer.(*servers.Server), nil
 }
