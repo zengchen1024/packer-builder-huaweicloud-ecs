@@ -238,6 +238,8 @@ github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/hash
 github.com/ulikunitz/xz/internal/xlog
 github.com/ulikunitz/xz/lzma
+# github.com/unknwon/com v1.0.1
+github.com/unknwon/com
 # github.com/zclconf/go-cty v1.1.0
 github.com/zclconf/go-cty/cty
 github.com/zclconf/go-cty/cty/convert

@@ -6,8 +6,8 @@ require (
 	github.com/google/uuid v1.0.0
 	github.com/gophercloud/gophercloud v0.2.0
 	github.com/gophercloud/utils v0.0.0-20190124192022-a5c25e7a53a6
-	github.com/hashicorp/go-cleanhttp v0.5.0
 	github.com/hashicorp/packer v1.4.5
 	github.com/mitchellh/mapstructure v0.0.0-20180111000720-b4575eea38cc
+	github.com/unknwon/com v1.0.1
 	golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5
 )
