@@ -3,11 +3,14 @@ package huaweicloud
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/hashicorp/packer/helper/multistep"
 	"github.com/hashicorp/packer/packer"
+	"github.com/huaweicloud/golangsdk"
+	"github.com/huaweicloud/golangsdk/openstack/networking/v1/eips"
 )
 
 type StepAllocateIp struct {
@@ -15,6 +18,8 @@ type StepAllocateIp struct {
 	FloatingIP            string
 	ReuseIPs              bool
 	InstanceFloatingIPNet string
+	EIPType               string
+	EIPBandwidthSize      int
 }
 
 func (s *StepAllocateIp) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
@@ -28,7 +33,7 @@ func (s *StepAllocateIp) Run(ctx context.Context, state multistep.StateBag) mult
 	// statebag below, because it is requested by Cleanup()
 	state.Put("access_ip", &instanceIP)
 
-	if s.FloatingIP == "" && !s.ReuseIPs && s.FloatingIPNetwork == "" {
+	if (*s) == (StepAllocateIp{InstanceFloatingIPNet: s.InstanceFloatingIPNet}) {
 		ui.Message("Floating IP not required")
 		return multistep.ActionContinue
 	}
@@ -108,6 +113,12 @@ func (s *StepAllocateIp) Run(ctx context.Context, state multistep.StateBag) mult
 		instanceIP = *newIP
 		ui.Message(fmt.Sprintf("Created floating IP: '%s' (%s)", instanceIP.ID, instanceIP.FloatingIP))
 		state.Put("floatingip_istemp", true)
+	} else if (s.EIPType != "") && (s.EIPBandwidthSize != 0) {
+		instanceIP, err = s.createEIP(ui, config, state)
+		if err != nil {
+			state.Put("error", err)
+			return multistep.ActionHalt
+		}
 	}
 
 	// Assoctate a floating IP if it was obtained in the previous steps.
@@ -174,5 +185,70 @@ func (s *StepAllocateIp) Cleanup(state multistep.StateBag) {
 		}
 
 		ui.Say(fmt.Sprintf("Deleted temporary floating IP '%s' (%s)", instanceIP.ID, instanceIP.FloatingIP))
+	}
+}
+
+func (s *StepAllocateIp) createEIP(ui packer.Ui, config *Config, stateBag multistep.StateBag) (floatingips.FloatingIP, error) {
+	ui.Say(fmt.Sprintf("Creating EIP ..."))
+
+	result := floatingips.FloatingIP{}
+	client, err := config.vpcClient()
+	if err != nil {
+		err = fmt.Errorf("Error initializing vpc client: %s", err)
+		ui.Error(err.Error())
+		return result, err
+	}
+
+	createOpts := eips.ApplyOpts{
+		IP: eips.PublicIpOpts{
+			Type: s.EIPType,
+		},
+		Bandwidth: eips.BandwidthOpts{
+			Size:       s.EIPBandwidthSize,
+			ShareType:  "PER",
+			ChargeMode: "bandwidth",
+			Name:       fmt.Sprintf("packer_eip_bandwidth_%v", time.Now().Unix()),
+		},
+	}
+	eip, err := eips.Apply(client, createOpts).Extract()
+	if err != nil {
+		err = fmt.Errorf("Error creating EIP: %s", err)
+		ui.Error(err.Error())
+		return result, err
+	}
+	ui.Message(fmt.Sprintf("Created EIP: '%s' (%s)", eip.ID, eip.PublicAddress))
+
+	stateConf := &StateChangeConf1{
+		Target:     []string{"ACTIVE"},
+		Refresh:    getEIPStatus(client, eip.ID),
+		Timeout:    10 * time.Minute,
+		Delay:      5 * time.Second,
+		MinTimeout: 3 * time.Second,
+		StateBag:   stateBag,
+	}
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		err = fmt.Errorf("Error waiting eip to be active: %s", err)
+		ui.Error(err.Error())
+		return result, err
+	}
+
+	result.ID = eip.ID
+	result.FloatingIP = eip.PublicAddress
+	return result, nil
+}
+
+func getEIPStatus(client *golangsdk.ServiceClient, eipID string) StateRefreshFunc1 {
+	return func() (interface{}, string, error) {
+		e, err := eips.Get(client, eipID).Extract()
+		if err != nil {
+			return nil, "", nil
+		}
+
+		if e.Status == "DOWN" || e.Status == "ACTIVE" {
+			return e, "ACTIVE", nil
+		}
+
+		return e, "", nil
 	}
 }

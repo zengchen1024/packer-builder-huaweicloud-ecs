@@ -112,6 +112,10 @@ type RunConfig struct {
 	// floating IPs in the same openstack project while packer is running, you
 	// should not set this to true. Defaults to false.
 	ReuseIPs bool `mapstructure:"reuse_ips" required:"false"`
+	// The type of eip. See the api doc to get the value.
+	EIPType string `mapstructure:"eip_type" required:"false"`
+	// The size of eip bandwidth.
+	EIPBandwidthSize int `mapstructure:"eip_bandwidth_size" required:"false"`
 	// A list of security groups by name to add to this instance.
 	SecurityGroups []string `mapstructure:"security_groups" required:"false"`
 	// A list of networks by UUID to attach to this instance.

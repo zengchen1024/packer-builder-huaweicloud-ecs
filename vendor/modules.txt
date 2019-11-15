@@ -189,6 +189,20 @@ github.com/hashicorp/vault/helper/parseutil
 github.com/hashicorp/vault/helper/strutil
 # github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
 github.com/hashicorp/yamux
+# github.com/huaweicloud/golangsdk v0.0.0-20191114112852-e18c07dc2fc0
+github.com/huaweicloud/golangsdk
+github.com/huaweicloud/golangsdk/internal
+github.com/huaweicloud/golangsdk/openstack
+github.com/huaweicloud/golangsdk/openstack/identity/v2/tenants
+github.com/huaweicloud/golangsdk/openstack/identity/v2/tokens
+github.com/huaweicloud/golangsdk/openstack/identity/v3/domains
+github.com/huaweicloud/golangsdk/openstack/identity/v3/endpoints
+github.com/huaweicloud/golangsdk/openstack/identity/v3/projects
+github.com/huaweicloud/golangsdk/openstack/identity/v3/services
+github.com/huaweicloud/golangsdk/openstack/identity/v3/tokens
+github.com/huaweicloud/golangsdk/openstack/networking/v1/eips
+github.com/huaweicloud/golangsdk/openstack/utils
+github.com/huaweicloud/golangsdk/pagination
 # github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869
 github.com/jehiah/go-strftime
 # github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af

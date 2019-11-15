@@ -231,6 +231,8 @@ github.com/hetznercloud/hcloud-go v1.15.1 h1:G8Q+xyAqQ5IUY7yq4HKZgkabFa0S/VXJXq3
 github.com/hetznercloud/hcloud-go v1.15.1/go.mod h1:8lR3yHBHZWy2uGcUi9Ibt4UOoop2wrVdERJgCtxsF3Q=
 github.com/hpcloud/tail v1.0.0 h1:nfCOvKYfkgYP8hkirhJocXT2+zOD8yUNjXaWfTlyFKI=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
+github.com/huaweicloud/golangsdk v0.0.0-20191114112852-e18c07dc2fc0 h1:nHAAR0ISbKJnEXxIO3X8r6GOJj2TTkMsdUX02s2l5qE=
+github.com/huaweicloud/golangsdk v0.0.0-20191114112852-e18c07dc2fc0/go.mod h1:WQBcHRNX9shz3928lWEvstQJtAtYI7ks6XlgtRT9Tcw=
 github.com/hyperonecom/h1-client-go v0.0.0-20190122232013-cf38e8387775 h1:MIteIoIQ5nFoOmwEHPDsqng8d0dtKj3lCnQCwGvtxXc=
 github.com/hyperonecom/h1-client-go v0.0.0-20190122232013-cf38e8387775/go.mod h1:R9rU87RxxmcD3DkspW9JqGBXiJyg5MA+WNCtJrBtnXs=
 github.com/jdcloud-api/jdcloud-sdk-go v1.9.1-0.20190605102154-3d81a50ca961 h1:a2/K4HRhg31A5vafiz5yYiGMjaCxwRpyjJStfVquKds=

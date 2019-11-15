@@ -127,6 +127,8 @@ func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (pack
 			FloatingIPNetwork:     b.config.FloatingIPNetwork,
 			FloatingIP:            b.config.FloatingIP,
 			ReuseIPs:              b.config.ReuseIPs,
+			EIPType:               b.config.EIPType,
+			EIPBandwidthSize:      b.config.EIPBandwidthSize,
 			InstanceFloatingIPNet: b.config.InstanceFloatingIPNet,
 		},
 		&communicator.StepConnect{

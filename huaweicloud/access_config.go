@@ -14,6 +14,8 @@ import (
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/utils/openstack/clientconfig"
 	"github.com/hashicorp/packer/template/interpolate"
+	"github.com/huaweicloud/golangsdk"
+	hwcsdk "github.com/huaweicloud/golangsdk/openstack"
 )
 
 // AccessConfig is for common configuration related to openstack access
@@ -86,7 +88,8 @@ type AccessConfig struct {
 	// `OS_CLOUD` environment variable is used.
 	Cloud string `mapstructure:"cloud" required:"false"`
 
-	osClient *gophercloud.ProviderClient
+	osClient  *gophercloud.ProviderClient
+	hwcClient *golangsdk.ProviderClient
 }
 
 func (c *AccessConfig) Prepare(ctx *interpolate.Context) []error {
@@ -237,7 +240,35 @@ func (c *AccessConfig) Prepare(ctx *interpolate.Context) []error {
 	}
 
 	c.osClient = client
+
+	hwcClient, err := hwcsdk.NewClient(ao.IdentityEndpoint)
+	if err != nil {
+		return []error{err}
+	}
+	hwcClient.HTTPClient = client.HTTPClient
+	err = authHWClint(hwcClient, ao)
+	if err != nil {
+		return []error{err}
+	}
+	c.hwcClient = hwcClient
 	return nil
+}
+
+func authHWClint(client *golangsdk.ProviderClient, ao *gophercloud.AuthOptions) error {
+	ao1 := golangsdk.AuthOptions{
+		IdentityEndpoint: ao.IdentityEndpoint,
+		Username:         ao.Username,
+		UserID:           ao.UserID,
+		Password:         ao.Password,
+		DomainID:         ao.DomainID,
+		DomainName:       ao.DomainName,
+		TenantID:         ao.TenantID,
+		TenantName:       ao.TenantName,
+		AllowReauth:      ao.AllowReauth,
+		TokenID:          ao.TokenID,
+	}
+
+	return hwcsdk.Authenticate(client, ao1)
 }
 
 func (c *AccessConfig) computeV2Client() (*gophercloud.ServiceClient, error) {
@@ -268,6 +299,13 @@ func (c *AccessConfig) networkV2Client() (*gophercloud.ServiceClient, error) {
 	})
 }
 
+func (c *AccessConfig) vpcClient() (*golangsdk.ServiceClient, error) {
+	return hwcsdk.NewNetworkV1(c.hwcClient, golangsdk.EndpointOpts{
+		Region:       c.Region,
+		Availability: c.getHWCEndpointType(),
+	})
+}
+
 func (c *AccessConfig) getEndpointType() gophercloud.Availability {
 	if c.EndpointType == "internal" || c.EndpointType == "internalURL" {
 		return gophercloud.AvailabilityInternal
@@ -276,4 +314,14 @@ func (c *AccessConfig) getEndpointType() gophercloud.Availability {
 		return gophercloud.AvailabilityAdmin
 	}
 	return gophercloud.AvailabilityPublic
+}
+
+func (c *AccessConfig) getHWCEndpointType() golangsdk.Availability {
+	if c.EndpointType == "internal" || c.EndpointType == "internalURL" {
+		return golangsdk.AvailabilityInternal
+	}
+	if c.EndpointType == "admin" || c.EndpointType == "adminURL" {
+		return golangsdk.AvailabilityAdmin
+	}
+	return golangsdk.AvailabilityPublic
 }
