@@ -300,6 +300,13 @@ func (c *AccessConfig) networkV2Client() (*gophercloud.ServiceClient, error) {
 }
 
 func (c *AccessConfig) vpcClient() (*golangsdk.ServiceClient, error) {
+	return hwcsdk.NewSDKClient(c.hwcClient, golangsdk.EndpointOpts{
+		Region:       c.Region,
+		Availability: c.getHWCEndpointType(),
+	}, "vpc")
+}
+
+func (c *AccessConfig) networkV1Client() (*golangsdk.ServiceClient, error) {
 	return hwcsdk.NewNetworkV1(c.hwcClient, golangsdk.EndpointOpts{
 		Region:       c.Region,
 		Availability: c.getHWCEndpointType(),

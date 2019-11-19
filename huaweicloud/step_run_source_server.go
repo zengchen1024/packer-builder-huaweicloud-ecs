@@ -19,6 +19,8 @@ type StepRunSourceServer struct {
 	SecurityGroups        []string
 	Networks              []string
 	Ports                 []string
+	VpcID                 string
+	Subnets               []string
 	AvailabilityZone      string
 	UserData              string
 	UserDataFile          string
@@ -43,13 +45,10 @@ func (s *StepRunSourceServer) Run(ctx context.Context, state multistep.StateBag)
 		return multistep.ActionHalt
 	}
 
-	networks := make([]servers.Network, len(s.Networks)+len(s.Ports))
-	i := 0
-	for ; i < len(s.Ports); i++ {
-		networks[i].Port = s.Ports[i]
-	}
-	for ; i < len(networks); i++ {
-		networks[i].UUID = s.Networks[i-len(s.Ports)]
+	networks, err := s.getNetworks(config)
+	if err != nil {
+		state.Put("error", err)
+		return multistep.ActionHalt
 	}
 
 	userData := []byte(s.UserData)
@@ -201,4 +200,29 @@ func createServer(ui packer.Ui, state multistep.StateBag, client *gophercloud.Se
 	}
 
 	return latestServer.(*servers.Server), nil
+}
+
+func (s *StepRunSourceServer) getNetworks(config *Config) ([]servers.Network, error) {
+	networkIDs := make(map[string]bool)
+
+	if (s.VpcID != "") && (len(s.Subnets) > 0) {
+		for _, subnetID := range s.Subnets {
+			networkIDs[subnetID] = true
+		}
+	}
+
+	for _, networkID := range s.Networks {
+		networkIDs[networkID] = true
+	}
+
+	networks := make([]servers.Network, 0, len(networkIDs)+len(s.Ports))
+
+	for _, portID := range s.Ports {
+		networks = append(networks, servers.Network{Port: portID})
+	}
+
+	for networkID := range networkIDs {
+		networks = append(networks, servers.Network{UUID: networkID})
+	}
+	return networks, nil
 }

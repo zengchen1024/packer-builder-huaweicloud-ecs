@@ -108,6 +108,8 @@ func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (pack
 			SecurityGroups:        b.config.SecurityGroups,
 			Networks:              b.config.Networks,
 			Ports:                 b.config.Ports,
+			VpcID:                 b.config.VpcID,
+			Subnets:               b.config.Subnets,
 			AvailabilityZone:      b.config.AvailabilityZone,
 			UserData:              b.config.UserData,
 			UserDataFile:          b.config.UserDataFile,

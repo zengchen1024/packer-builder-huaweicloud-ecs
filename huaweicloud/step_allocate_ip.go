@@ -192,7 +192,7 @@ func (s *StepAllocateIp) createEIP(ui packer.Ui, config *Config, stateBag multis
 	ui.Say(fmt.Sprintf("Creating EIP ..."))
 
 	result := floatingips.FloatingIP{}
-	client, err := config.vpcClient()
+	client, err := config.networkV1Client()
 	if err != nil {
 		err = fmt.Errorf("Error initializing vpc client: %s", err)
 		ui.Error(err.Error())
